@@ -1,106 +1,89 @@
-ADR-002: Adopción de Spring Data JPA como Estrategia de Persistencia
-📌 Contexto
+# ADR-002: Adopción de Spring Data JPA como Estrategia de Persistencia
 
-En la arquitectura original del sistema Espagueti de Encuestas, el acceso a datos se realizaba mediante consultas SQL construidas manualmente y concatenadas directamente dentro del controlador. Esta práctica generaba múltiples problemas estructurales y de seguridad:
+## 📌 Contexto
 
-Alto riesgo de SQL Injection.
+En la arquitectura original del sistema Espagueti de Encuestas, el acceso a datos se realizaba mediante consultas SQL construidas manualmente y concatenadas directamente dentro del controlador.
 
-Violación del principio de responsabilidad única (SRP).
+Esta práctica generaba múltiples problemas estructurales y de seguridad:
 
-Duplicación de lógica de acceso a datos.
+- Alto riesgo de SQL Injection.
+- Violación del principio de responsabilidad única (SRP).
+- Duplicación de lógica de acceso a datos.
+- Bajo nivel de abstracción frente al modelo de dominio.
+- Dificultad para pruebas unitarias y mantenimiento evolutivo.
 
-Bajo nivel de abstracción frente al modelo de dominio.
+Además, la lógica de persistencia estaba acoplada directamente a la capa de presentación, impidiendo una separación clara entre dominio y acceso a datos.
 
-Dificultad para pruebas unitarias y mantenimiento evolutivo.
+Se hizo necesario adoptar una estrategia de persistencia más robusta y alineada con el ecosistema Spring.
 
-Adicionalmente, la lógica de persistencia estaba acoplada directamente a la capa de presentación, lo que impedía una separación clara entre dominio y acceso a datos.
+---
 
-Frente a este escenario, se hizo necesario adoptar una estrategia de persistencia más robusta, alineada con estándares modernos del ecosistema Spring.
+## ✅ Decisión
 
-✅ Decisión
-
-Se adopta Spring Data JPA como capa de persistencia oficial para los microservicios propuestos (survey-service y voting-service), utilizando el patrón Repository y delegando la gestión de entidades al proveedor JPA configurado.
+Se adopta **Spring Data JPA** como capa de persistencia oficial para los microservicios propuestos (survey-service y voting-service), utilizando el patrón Repository y delegando la gestión de entidades al proveedor JPA configurado.
 
 La implementación incluye:
 
-Definición de entidades anotadas con @Entity.
+- Definición de entidades anotadas con `@Entity`.
+- Creación de interfaces que extienden `JpaRepository`.
+- Uso de consultas derivadas por convención.
+- Integración con el contenedor de inversión de control de Spring.
 
-Creación de interfaces que extienden JpaRepository.
+Esta decisión desacopla la lógica de negocio del acceso a datos y estandariza la persistencia bajo un enfoque ORM.
 
-Uso de consultas derivadas por convención.
+---
 
-Integración con el contenedor de inversión de control de Spring.
+## 📊 Consecuencias
 
-Esta decisión permite desacoplar completamente la lógica de negocio del acceso a datos y estandarizar la persistencia bajo un enfoque ORM (Object-Relational Mapping).
+### 🔹 Positivas
 
-📊 Consecuencias
-🔹 Positivas
+- Mitigación de vulnerabilidades frente a SQL Injection.
+- Reducción significativa de código repetitivo.
+- Mayor coherencia con Spring Boot.
+- Mejora en la testabilidad mediante inyección de dependencias.
+- Abstracción del modelo relacional hacia objetos.
+- Facilita migraciones futuras de base de datos.
+- Soporte para paginación y consultas dinámicas.
 
-Mitigación de vulnerabilidades frente a SQL Injection mediante prepared statements gestionados internamente.
+### 🔹 Negativas
 
-Reducción significativa de código repetitivo (boilerplate).
+- Curva de aprendizaje asociada al ORM.
+- Posible sobrecarga en consultas altamente específicas.
+- Dependencia del proveedor JPA.
+- Necesidad de comprender el ciclo de vida de las entidades.
 
-Mayor coherencia con el ecosistema Spring Boot.
+---
 
-Mejora en la testabilidad mediante inyección de dependencias.
+## 🔄 Alternativas Consideradas
 
-Abstracción del modelo relacional hacia un modelo orientado a objetos.
+### 1️⃣ JdbcTemplate
 
-Facilita migraciones futuras de base de datos.
+**Razón de descarte:**
 
-Soporte nativo para paginación, ordenamiento y consultas dinámicas.
+- Requiere definición manual de consultas.
+- Mayor exposición a errores humanos.
+- No ofrece un modelo de dominio explícito.
+- Mayor esfuerzo de mantenimiento.
 
-🔹 Negativas
+### 2️⃣ MyBatis
 
-Curva de aprendizaje inicial asociada al uso de JPA y ORM.
+**Razón de descarte:**
 
-Posible sobrecarga de rendimiento en consultas altamente específicas.
+- No es estándar dentro del ecosistema actual del proyecto.
+- Introduce dependencia adicional.
+- Aumenta complejidad sin aportar beneficios significativos frente a JPA.
+- El rediseño busca alinearse con prácticas predominantes en Spring Boot.
 
-Dependencia del proveedor JPA configurado.
+---
 
-Necesidad de comprender correctamente el ciclo de vida de las entidades.
+## 🎯 Justificación Arquitectónica
 
-🔄 Alternativas Consideradas
-1️⃣ JdbcTemplate
+La adopción de Spring Data JPA responde a:
 
-Se evaluó el uso de JdbcTemplate como alternativa más ligera.
+- Separación de responsabilidades
+- Reducción de acoplamiento
+- Estandarización tecnológica
+- Seguridad por diseño
+- Escalabilidad estructural
 
-Razón de descarte:
-
-Continúa requiriendo definición manual de consultas.
-
-Mayor exposición a errores humanos.
-
-No ofrece un modelo de dominio explícito.
-
-Mayor esfuerzo de mantenimiento a largo plazo.
-
-2️⃣ MyBatis
-
-Se consideró MyBatis como solución intermedia entre SQL manual y ORM completo.
-
-Razón de descarte:
-
-No es la solución estándar dentro del ecosistema actual del proyecto.
-
-Introduce una dependencia adicional.
-
-Aumenta complejidad sin aportar beneficios significativos frente a JPA para este caso académico.
-
-El objetivo del rediseño es alinearse con prácticas predominantes en Spring Boot.
-
-🎯 Justificación Arquitectónica
-
-La adopción de Spring Data JPA responde a los siguientes principios arquitectónicos:
-
-Separación de responsabilidades
-
-Reducción de acoplamiento
-
-Estandarización tecnológica
-
-Seguridad por diseño
-
-Escalabilidad estructural
-
-Esta decisión no solo resuelve problemas técnicos detectados en la fase de análisis, sino que prepara el sistema para evolucionar hacia una arquitectura más profesional y sostenible.
+Esta decisión prepara el sistema para evolucionar hacia una arquitectura profesional y sostenible.
